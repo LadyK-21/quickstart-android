@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
@@ -144,7 +145,7 @@ public class RestaurantDetailFragment extends Fragment
     }
 
     public void onBackArrowClicked(View view) {
-        requireActivity().onBackPressed();
+        NavHostFragment.findNavController(this).popBackStack();
     }
 
     public void onAddRatingClicked(View view) {
@@ -218,13 +219,15 @@ public class RestaurantDetailFragment extends Fragment
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.restaurantButtonBack:
-                onBackArrowClicked(v);
-                break;
-            case R.id.fabShowRatingDialog:
-                onAddRatingClicked(v);
-                break;
+        //Due to bump in Java version, we can not use view ids in switch
+        //(see: http://tools.android.com/tips/non-constant-fields), so we
+        //need to use if/else:
+
+        int viewId = v.getId();
+        if (viewId == R.id.restaurantButtonBack) {
+            onBackArrowClicked(v);
+        } else if (viewId == R.id.fabShowRatingDialog) {
+            onAddRatingClicked(v);
         }
     }
 

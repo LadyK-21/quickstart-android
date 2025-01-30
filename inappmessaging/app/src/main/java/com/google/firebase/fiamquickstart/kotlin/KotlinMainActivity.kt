@@ -5,13 +5,13 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.fiamquickstart.R
 import com.google.firebase.fiamquickstart.databinding.ActivityMainBinding
 import com.google.firebase.inappmessaging.FirebaseInAppMessaging
-import com.google.firebase.inappmessaging.ktx.inAppMessaging
-import com.google.firebase.installations.ktx.installations
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.inappmessaging.inAppMessaging
+import com.google.firebase.installations.installations
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.analytics
 
 class KotlinMainActivity : AppCompatActivity() {
 
@@ -32,16 +32,16 @@ class KotlinMainActivity : AppCompatActivity() {
         binding.eventTriggerButton.setOnClickListener { view ->
             firebaseAnalytics.logEvent("engagement_party", Bundle())
             Snackbar.make(view, "'engagement_party' event triggered!", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null)
-                    .show()
+                .setAction("Action", null)
+                .show()
         }
 
         // Get and display/log the installation id
         Firebase.installations.getId()
-                .addOnSuccessListener { id ->
-                    binding.installationIdText.text = getString(R.string.installation_id_fmt, id)
-                    Log.d(TAG, "Installation ID: $id")
-                }
+            .addOnSuccessListener { id ->
+                binding.installationIdText.text = getString(R.string.installation_id_fmt, id)
+                Log.d(TAG, "Installation ID: $id")
+            }
     }
 
     companion object {

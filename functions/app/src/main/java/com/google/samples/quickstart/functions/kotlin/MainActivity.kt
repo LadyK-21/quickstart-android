@@ -1,24 +1,30 @@
 package com.google.samples.quickstart.functions.kotlin
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.gms.tasks.Task
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.auth.ktx.auth
+import com.google.firebase.auth.auth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
-import com.google.firebase.functions.ktx.functions
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.functions.functions
+import com.google.firebase.Firebase
 import com.google.samples.quickstart.functions.R
 import com.google.samples.quickstart.functions.databinding.ActivityMainBinding
 
@@ -36,6 +42,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var binding: ActivityMainBinding
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(this, "Notifications permission granted", Toast.LENGTH_SHORT)
+                .show()
+        } else {
+            Toast.makeText(
+                this,
+                "FCM can't post notifications without POST_NOTIFICATIONS permission",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -50,6 +71,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         // [START initialize_functions_instance]
         functions = Firebase.functions
         // [END initialize_functions_instance]
+
+        askNotificationPermission()
     }
 
     // [START function_add_numbers]
@@ -57,20 +80,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         // Create the arguments to the callable function, which are two integers
         val data = hashMapOf(
             "firstNumber" to a,
-            "secondNumber" to b
+            "secondNumber" to b,
         )
 
         // Call the function and extract the operation from the result
         return functions
-                .getHttpsCallable("addNumbers")
-                .call(data)
-                .continueWith { task ->
-                    // This continuation runs on either success or failure, but if the task
-                    // has failed then task.result will throw an Exception which will be
-                    // propagated down.
-                    val result = task.result?.data as Map<String, Any>
-                    result["operationResult"] as Int
-                }
+            .getHttpsCallable("addNumbers")
+            .call(data)
+            .continueWith { task ->
+                // This continuation runs on either success or failure, but if the task
+                // has failed then task.result will throw an Exception which will be
+                // propagated down.
+                val result = task.result?.data as Map<String, Any>
+                result["operationResult"] as Int
+            }
     }
     // [END function_add_numbers]
 
@@ -79,19 +102,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         // Create the arguments to the callable function.
         val data = hashMapOf(
             "text" to text,
-            "push" to true
+            "push" to true,
         )
 
         return functions
-                .getHttpsCallable("addMessage")
-                .call(data)
-                .continueWith { task ->
-                    // This continuation runs on either success or failure, but if the task
-                    // has failed then result will throw an Exception which will be
-                    // propagated down.
-                    val result = task.result?.data as String
-                    result
-                }
+            .getHttpsCallable("addMessage")
+            .call(data)
+            .continueWith { task ->
+                // This continuation runs on either success or failure, but if the task
+                // has failed then result will throw an Exception which will be
+                // propagated down.
+                val result = task.result?.data as String
+                result
+            }
     }
     // [END function_add_message]
 
@@ -111,32 +134,31 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         // [START call_add_numbers]
         addNumbers(firstNumber, secondNumber)
-                .addOnCompleteListener { task ->
-                    if (!task.isSuccessful) {
-                        val e = task.exception
-                        if (e is FirebaseFunctionsException) {
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    val e = task.exception
+                    if (e is FirebaseFunctionsException) {
+                        // Function error code, will be INTERNAL if the failure
+                        // was not handled properly in the function call.
+                        val code = e.code
 
-                            // Function error code, will be INTERNAL if the failure
-                            // was not handled properly in the function call.
-                            val code = e.code
-
-                            // Arbitrary error details passed back from the function,
-                            // usually a Map<String, Any>.
-                            val details = e.details
-                        }
-
-                        // [START_EXCLUDE]
-                        Log.w(TAG, "addNumbers:onFailure", e)
-                        showSnackbar("An error occurred.")
-                        return@addOnCompleteListener
-                        // [END_EXCLUDE]
+                        // Arbitrary error details passed back from the function,
+                        // usually a Map<String, Any>.
+                        val details = e.details
                     }
 
                     // [START_EXCLUDE]
-                    val result = task.result
-                    binding.fieldAddResult.setText(result.toString())
+                    Log.w(TAG, "addNumbers:onFailure", e)
+                    showSnackbar("An error occurred.")
+                    return@addOnCompleteListener
                     // [END_EXCLUDE]
                 }
+
+                // [START_EXCLUDE]
+                val result = task.result
+                binding.fieldAddResult.setText(result.toString())
+                // [END_EXCLUDE]
+            }
         // [END call_add_numbers]
     }
 
@@ -150,7 +172,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         // [START call_add_message]
         addMessage(inputMessage)
-                .addOnCompleteListener(OnCompleteListener { task ->
+            .addOnCompleteListener(
+                OnCompleteListener { task ->
                     if (!task.isSuccessful) {
                         val e = task.exception
                         if (e is FirebaseFunctionsException) {
@@ -169,7 +192,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     val result = task.result
                     binding.fieldMessageOutput.setText(result)
                     // [END_EXCLUDE]
-                })
+                },
+            )
         // [END call_add_message]
     }
 
@@ -188,14 +212,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun signIn() {
         val signInLauncher = registerForActivityResult(
-            FirebaseAuthUIActivityResultContract()
-        ) { result -> this.onSignInResult(result)}
+            FirebaseAuthUIActivityResultContract(),
+        ) { result -> this.onSignInResult(result) }
 
         val signInIntent = AuthUI.getInstance()
-                .createSignInIntentBuilder()
-                .setAvailableProviders(listOf(AuthUI.IdpConfig.EmailBuilder().build()))
-                .setIsSmartLockEnabled(false)
-                .build()
+            .createSignInIntentBuilder()
+            .setAvailableProviders(listOf(AuthUI.IdpConfig.EmailBuilder().build()))
+            .setIsSmartLockEnabled(false)
+            .build()
 
         signInLauncher.launch(signInIntent)
     }
@@ -224,6 +248,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             R.id.buttonCalculate -> onCalculateClicked()
             R.id.buttonAddMessage -> onAddMessageClicked()
             R.id.buttonSignIn -> onSignInClicked()
+        }
+    }
+
+    private fun askNotificationPermission() {
+        // This is only necessary for API Level > 33 (TIRAMISU)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                // FCM SDK (and your app) can post notifications.
+            } else {
+                // Directly ask for the permission
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 
